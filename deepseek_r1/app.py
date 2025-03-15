@@ -3,6 +3,11 @@ import openai
 import os
 from datetime import datetime, timedelta
 from flask import stream_with_context
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
@@ -24,96 +29,119 @@ SYSTEM_PROMPT = {
     "content": "You are DeepSeek-R1, a highly intelligent assistant. Respond using clear, Traditional Chinese."
 }
 
-# 初始化 session 中的 messages
-def init_session_messages():
+def get_session_messages():
+
     if "messages" not in session:
         session["messages"] = [SYSTEM_PROMPT]
-        session["last_reset"] = datetime.now().isoformat()
+        session.modified = True
+    return session["messages"]
 
-# 消息修剪邏輯
+def save_session_messages(messages):
+    """安全地保存消息到session"""
+    session["messages"] = messages
+    session.modified = True
+
 def trim_messages(messages, max_rounds=5):
-    """保留最近 max_rounds 輪有效對話"""
-    valid_messages = [messages[0]]  # 保留系統提示
+    """保留最近max_rounds"""
+    if len(messages) <= 1:
+        return messages
+        
+
+    trimmed = [messages[0]]
     
-    # 從新到舊遍歷消息
-    user_turn = False  # 標識下一輪應出現的角色
-    for msg in reversed(messages[1:]):
-        if msg["role"] == ("user" if user_turn else "assistant"):
-            valid_messages.insert(1, msg)  # 插入到系統提示後
-            user_turn = not user_turn
-            if len(valid_messages) >= 1 + 2 * max_rounds:
-                break
+
+    conversation = messages[1:]  
+    pairs = []
     
-    return valid_messages
+
+    i = len(conversation) - 1
+    while i > 0 and len(pairs) < max_rounds:
+        if conversation[i]["role"] == "assistant" and i > 0 and conversation[i-1]["role"] == "user":
+            pairs.append((conversation[i-1], conversation[i]))
+            i -= 2
+        else:
+            i -= 1
+    
+ 
+    for user_msg, assistant_msg in reversed(pairs):
+        trimmed.extend([user_msg, assistant_msg])
+    
+    return trimmed
 
 @app.route("/", methods=["GET"])
 def index():
-    init_session_messages()
-    return render_template("index.html", messages=session["messages"])
+    messages = get_session_messages()
+    return render_template("index.html", messages=messages)
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    init_session_messages()
+    try:
+        data = request.get_json()
+        if not data:
+            return Response("無效的請求數據", status=400)
 
-    user_input = request.form.get("user_input", "").strip()
-    if not user_input:
-        return Response("請輸入有效內容", mimetype="text/plain")
+        user_input = data.get("user_input", "").strip()
+        messages = data.get("messages", [])
 
-    messages = session.get("messages", [])
-    
-    # 檢查最後一條消息
-    if messages and messages[-1]["role"] == "user":
-        return Response("等待助理回覆中...", mimetype="text/plain")
-        
-    # 添加用戶消息
-    messages.append({"role": "user", "content": user_input})
-    
-    # 修剪消息歷史（在添加新消息後進行）
-    if len(messages) > 11:  # 5輪對話 + 系統提示 = 11條消息
-        messages = trim_messages(messages, max_rounds=5)
+        if not user_input:
+            return Response("請輸入有效內容", status=400)
 
-    @copy_current_request_context
-    def generate():
-        try:
-            response = client.chat.completions.create(
-                model="deepseek-reasoner",
-                messages=messages,
-                stream=True
-            )
-            
-            full_response = ""
-            for chunk in response:
-                if chunk.choices[0].delta.content:
-                    content = chunk.choices[0].delta.content
-                    full_response += content
-                    yield content
-                    
-            # 只有在成功生成完整響應後才更新session
-            messages.append({"role": "assistant", "content": full_response})
-            session["messages"] = messages
-            session.modified = True
-            
-        except Exception as e:
-            messages.pop() # 移除失敗的用戶消息
-            session["messages"] = messages
-            session.modified = True
-            yield f"錯誤：{str(e)}"
-            
-    return Response(stream_with_context(generate()), mimetype="text/plain")
 
+        all_messages = [SYSTEM_PROMPT] + messages
+
+        def generate():
+            try:
+                response = client.chat.completions.create(
+                    model="deepseek-reasoner",
+                    messages=all_messages,
+                    stream=True
+                )
+                
+                for chunk in response:
+                    if chunk.choices[0].delta.content:
+                        yield chunk.choices[0].delta.content
+                        
+            except Exception as e:
+                yield f"錯誤：{str(e)}"
+
+        return Response(stream_with_context(generate()), mimetype="text/plain")
+
+    except Exception as e:
+        return Response(f"處理請求時發生錯誤：{str(e)}", status=500)
 @app.route("/reset", methods=["POST"])
 def reset():
     try:
         session["messages"] = [SYSTEM_PROMPT]
-        session["last_reset"] = datetime.now().isoformat()
         session.modified = True
+        logger.info("Session reset")
         return render_template("index.html", messages=session["messages"])
     except Exception as e:
+        logger.error(f"Error resetting session: {str(e)}")
         return Response(f"重置失敗：{str(e)}", status=500)
 
 if __name__ == "__main__":
-    # 添加 session 配置
-    app.config['SESSION_TYPE'] = 'filesystem'
-    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
+    from flask_session import Session
+    
+    app.config.update(
+        SESSION_TYPE='filesystem',
+        SESSION_FILE_DIR=os.path.join(app.root_path, 'flask_session'),
+        SESSION_PERMANENT=True,
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=2)
+    )
+    
+    Session(app)
+    
+
+    os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
+    
+
+    @app.before_request
+    def before_request():
+        logger.info(f"Session before request: {dict(session)}")
+        
+    @app.after_request
+    def after_request(response):
+        logger.info(f"Session after request: {dict(session)}")
+        return response
     
     app.run(host="0.0.0.0", port=5000, debug=True)
