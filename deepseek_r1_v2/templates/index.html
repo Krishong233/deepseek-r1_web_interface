@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek-R1 - 主頁</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #375f73 0%, rgb(58, 5, 147) 100%);
+            color: #00a5ff;
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(138, 43, 226, 0.5);
+        }
+        h1 {
+            color: #93d3ff;
+            font-size: 48px;
+            text-shadow: 0 0 10px #00FF7F;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 18px;
+            color: #FFFFFF;
+            margin-bottom: 30px;
+        }
+        .btn-eva {
+            background: linear-gradient(135deg, rgb(147, 211, 255), rgb(212, 221, 227));
+            color: rgba(142, 140, 143, 0.94);
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            border-radius: 10px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .btn-eva:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px #8A2BE2;
+        }
+        #question-box {
+            display: none;
+            margin-top: 20px;
+        }
+        #question-box input {
+            background: #2E0854;
+            border: 1px solid #00FF7F;
+            color: #FFFFFF;
+            padding: 10px;
+            border-radius: 5px;
+            width: 80%;
+            margin-bottom: 10px;
+        }
+        #question-box button {
+            background: #00FF7F;
+            color: #1A1A1A;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>DeepSeek-R1</h1>
+    <p>歡迎體驗 DeepSeek-R1，一個融合尖端科技與智能的聊天助手項目。基於 DeepSeek API 構建，提供高效、自然的對話體驗。點擊下方按鈕，通過簡單驗證即可進入聊天界面。</p>
+    <button class="btn-eva" id="chat-btn">進入聊天室</button>
+    <div id="question-box">
+        <p id="question-text"></p>
+        <input type="text" id="answer-input" placeholder="輸入答案">
+        <button id="submit-answer">提交</button>
+        <p id="error-msg" style="color: #FF4500;"></p>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { q: "我的 classno 是什麼？", a: "23" },
+        { q: "我的中文全名是什麼？", a: "洪麒翔" },
+        { q: "我的生日是？（dd/mm）", a: "07/08" }
+    ];
+    let attempts = 0;
+    const maxAttempts = 4;
+
+    document.getElementById("chat-btn").addEventListener("click", () => {
+        const questionBox = document.getElementById("question-box");
+        questionBox.style.display = "block";
+        const randomQ = questions[Math.floor(Math.random() * questions.length)];
+        document.getElementById("question-text").textContent = randomQ.q;
+        window.correctAnswer = randomQ.a;
+    });
+
+    document.getElementById("submit-answer").addEventListener("click", async () => {
+        const userAnswer = document.getElementById("answer-input").value.trim();
+        const errorMsg = document.getElementById("error-msg");
+
+        if (userAnswer === window.correctAnswer) {
+            window.location.href = "/chatroom";
+        } else {
+            attempts++;
+            errorMsg.textContent = `答案錯誤！剩餘嘗試次數：${maxAttempts - attempts}`;
+            if (attempts >= maxAttempts) {
+                errorMsg.textContent = "嘗試次數已用盡，您的 IP 已被封鎖 24 小時。";
+                await fetch("/block-ip", { method: "POST" });
+                document.getElementById("chat-btn").disabled = true;
+                document.getElementById("submit-answer").disabled = true;
+            }
+        }
+    });
+</script>
+</body>
+</html>
