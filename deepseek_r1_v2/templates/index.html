@@ -69,6 +69,28 @@
             padding: 10px 20px;
             border-radius: 5px;
         }
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 32px;
+            }
+            p {
+                font-size: 16px;
+            }
+            .btn-eva {
+                padding: 10px 20px;
+                font-size: 18px;
+            }
+            #question-box input {
+                width: 100%;
+                padding: 8px;
+            }
+            #question-box button {
+                padding: 8px 16px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -78,43 +100,51 @@
     <button class="btn-eva" id="chat-btn">進入聊天室</button>
     <div id="question-box">
         <p id="question-text"></p>
-        <input type="text" id="answer-input" placeholder="輸入答案">
-        <button id="submit-answer">提交</button>
+        <form id="answer-form">
+            <input type="text" id="answer-input" placeholder="輸入答案">
+            <button type="submit" id="submit-answer">提交</button>
+        </form>
         <p id="error-msg" style="color: #FF4500;"></p>
     </div>
 </div>
 
 <script>
-    const questions = [
-        { q: "我的 classno 是什麼？", a: "23" },
-        { q: "我的中文全名是什麼？", a: "洪麒翔" },
-        { q: "我的生日是？（dd/mm）", a: "07/08" }
-    ];
-    let attempts = 0;
-    const maxAttempts = 4;
-
-    document.getElementById("chat-btn").addEventListener("click", () => {
+    document.getElementById("chat-btn").addEventListener("click", async () => {
         const questionBox = document.getElementById("question-box");
         questionBox.style.display = "block";
-        const randomQ = questions[Math.floor(Math.random() * questions.length)];
-        document.getElementById("question-text").textContent = randomQ.q;
-        window.correctAnswer = randomQ.a;
+        const response = await fetch("/get_question");
+        if (response.status === 403) {
+            document.getElementById("error-msg").textContent = "您的 IP 已被封鎖";
+            document.getElementById("chat-btn").disabled = true;
+        } else {
+            const questionText = await response.text();
+            document.getElementById("question-text").textContent = questionText;
+            document.getElementById("error-msg").textContent = "";
+        }
     });
 
-    document.getElementById("submit-answer").addEventListener("click", async () => {
-        const userAnswer = document.getElementById("answer-input").value.trim();
-        const errorMsg = document.getElementById("error-msg");
-
-        if (userAnswer === window.correctAnswer) {
+    document.getElementById("answer-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const answer = document.getElementById("answer-input").value.trim();
+        if (!answer) return;
+        const submitButton = document.getElementById("submit-answer");
+        submitButton.disabled = true;
+        const response = await fetch("/validate_answer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ answer: answer })
+        });
+        const result = await response.json();
+        submitButton.disabled = false;
+        if (result.success) {
             window.location.href = "/chatroom";
         } else {
-            attempts++;
-            errorMsg.textContent = `答案錯誤！剩餘嘗試次數：${maxAttempts - attempts}`;
-            if (attempts >= maxAttempts) {
-                errorMsg.textContent = "嘗試次數已用盡，您的 IP 已被封鎖 24 小時。";
-                await fetch("/block-ip", { method: "POST" });
+            if (result.blocked) {
+                document.getElementById("error-msg").textContent = "嘗試次數已用盡，您的 IP 已被封鎖 24 小時。";
                 document.getElementById("chat-btn").disabled = true;
                 document.getElementById("submit-answer").disabled = true;
+            } else {
+                document.getElementById("error-msg").textContent = `答案錯誤！已嘗試 ${result.attempts} 次。`;
             }
         }
     });
