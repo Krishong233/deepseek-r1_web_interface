@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Quiz Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script><!-- 自訂樣式 -->
+    <style>
+        body {
+            background: linear-gradient(135deg, rgba(89, 116, 136, 0.86) 0%, rgba(95, 124, 145, 0.9) 100%);
+            color: #edfaff;
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            text-align: left;
+            padding: 40px;
+            background: rgb(68, 101, 124);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgb(78, 87, 93);
+            width: 90%;
+            max-width: 800px;
+        }
+        h1, h2, h3 {
+            color: #f0f8fd;
+            text-shadow: 0 0 10px #83a4b2;
+
+        }
+        pre {
+            background-color: rgba(203, 228, 243, 0.89);
+            color: rgb(4, 6, 7);
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            text-shadow: 0 0 6px #4c6b79;
+        }
+        .btn-submit {
+            background: rgb(75, 163, 225);
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .btn-submit:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px #00a5ff;
+        }
+        .error-msg { color: #de683a; margin-top: 10px; text-shadow: 0 0 10px #9f3c18;}
+        .success-msg { color: #93d3ff; margin-top: 10px;text-shadow: 0 0 10px #83a4b2; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>SQL Quiz Generator</h1>
+    <h3>Provided Table Schemas</h3>
+    <pre>
+-- employees table
+employee_id   INTEGER    -- Primary Key
+name          CHAR(100)
+salary        INTEGER
+department_id INTEGER    -- Foreign Key
+
+-- customers table
+customer_id        INTEGER  -- Primary Key
+name               CHAR(100)
+registration_date  DATE
+
+-- products table
+product_id    INTEGER   -- Primary Key
+product_name  CHAR(100)
+price         INTEGER
+
+-- orders table
+order_id      INTEGER   -- Primary Key
+customer_id   INTEGER   -- Foreign Key
+total_amount  INTEGER
+
+-- departments table
+department_id    INTEGER   -- Primary Key
+department_name  CHAR(100)
+    </pre>
+    <hr>
+    <h2>SQL Quiz Question</h2>
+    <p id="question-text"></p>
+    <form id="answer-form">
+        <textarea id="answer-input" rows="5" style="width:100%; background:rgba(228,243,253,0.87); font-family: 'Noto Sans TC', 'Roboto', sans-serif;border:1px solid #00a5ff; color:#1f303d; padding:10px; border-radius:5px;" placeholder="Enter your SQL statement here"></textarea>
+        <button type="submit" class="btn-submit">Submit Answer</button>
+    </form>
+    <p class="error-msg" id="error-msg"></p>
+    <p class="success-msg" id="success-msg"></p>
+</div>
+
+<script>
+    // When the page loads, fetch a new SQL quiz question.
+    window.onload = async () => {
+        const response = await fetch('/get_sql_question');
+        if(response.ok) {
+            const data = await response.json();
+            document.getElementById('question-text').textContent = data.question;
+        } else {
+            document.getElementById('error-msg').textContent = 'Failed to load quiz question.';
+        }
+    };
+
+    document.getElementById("answer-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        document.getElementById('error-msg').textContent = '';
+        document.getElementById('success-msg').textContent = '';
+        const answer = document.getElementById("answer-input").value.trim();
+        if (!answer) {
+            document.getElementById('error-msg').textContent = 'Answer cannot be empty.';
+            return;
+        }
+        const response = await fetch('/validate_sql_answer', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ answer: answer })
+        });
+        const result = await response.json();
+        if (result.success) {
+            document.getElementById('success-msg').textContent = 'Your answer is correct! Good job!';
+        } else {
+            document.getElementById('error-msg').textContent = `Answer: ${result.message}`;
+        }
+    });
+</script>
+</body>
+</html>
