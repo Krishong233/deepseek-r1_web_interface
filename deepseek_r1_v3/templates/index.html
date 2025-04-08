@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>\(0^◇^0)/</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --light-accent: #ecf0f1;
+            --text-color: #333;
+            --light-text: #7f8c8d;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --error-color: #e74c3c;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: var(--text-color);
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 90%;
+            margin: 2rem auto;
+            padding: 2.5rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, var(--accent-color), var(--success-color), var(--warning-color));
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: var(--accent-color);
+            border-radius: 2px;
+        }
+
+        .lead-text {
+            color: var(--light-text);
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 2.5rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .feature-cards {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .feature-card {
+            flex: 1;
+            min-width: 250px;
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--accent-color);
+        }
+
+        .feature-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-desc {
+            color: var(--light-text);
+            font-size: 0.9rem;
+        }
+
+        .btn-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .btn-main {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 200px;
+            box-shadow: 0 4px 6px rgba(52, 152, 219, 0.2);
+        }
+
+        .btn-main:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3);
+            color: white;
+        }
+
+        .btn-main i {
+            margin-right: 0.5rem;
+        }
+
+        .btn-sql {
+            background-color: var(--warning-color);
+            box-shadow: 0 4px 6px rgba(243, 156, 18, 0.2);
+        }
+
+        .btn-sql:hover {
+            background-color: #e67e22;
+            box-shadow: 0 6px 12px rgba(243, 156, 18, 0.3);
+        }
+
+        .btn-spreadsheet {
+            background-color: var(--success-color);
+            box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2);
+        }
+
+        .btn-spreadsheet:hover {
+            background-color: #219653;
+            box-shadow: 0 6px 12px rgba(39, 174, 96, 0.3);
+        }
+
+        #question-box {
+            display: none;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--light-accent);
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        #question-text {
+            font-weight: 500;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        #answer-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        #answer-input {
+            padding: 0.8rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border 0.3s;
+        }
+
+        #answer-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        #submit-answer {
+            align-self: flex-start;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        #submit-answer:hover {
+            background-color: #2980b9;
+        }
+
+        #error-msg {
+            color: var(--error-color);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        #tweet-container {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        #tweet-container h2 {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+        }
+
+        #tweet-list {
+            list-style: none;
+            padding: 0;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        #tweet-list li {
+            margin: 10px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            text-align: left;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .container {
+                padding: 2rem;
+            }
+
+            .feature-cards {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .feature-card {
+                width: 100%;
+                max-width: 400px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .lead-text {
+                font-size: 1rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+                width: 95%;
+            }
+
+            .btn-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn-main {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .container {
+                padding: 1.2rem;
+            }
+
+            #question-box {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>基於人工智能的工具合集</h1>
+    <p class="lead-text">Desgined by <a href="https://www.instagram.com/k_honng_" class="portal-button" target="_blank">K_HONNG_</a></p>
+
+    <div class="feature-cards">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-comments"></i>
+            </div>
+            <h3 class="feature-title">Free Chat</h3>
+            <p class="feature-desc">流暢自然的對話體驗，理解上下文，提供精準回應。</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-database"></i>
+            </div>
+            <h3 class="feature-title">SQL Test</h3>
+            <p class="feature-desc">測試您的數據庫查詢技能，獲得專業反饋與建議。</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-table"></i>
+            </div>
+            <h3 class="feature-title">Spreadsheet Test</h3>
+            <p class="feature-desc">評估您的電子表格處理能力，提升數據分析效率。</p>
+        </div>
+    </div>
+
+    <div class="btn-container">
+        <button class="btn-main" id="chat-btn">
+            <i class="fas fa-comment-dots"></i> 進入聊天室
+        </button>
+        <button class="btn-main btn-sql" id="sql-test-btn">
+            <i class="fas fa-database"></i> SQL測驗
+        </button>
+        <button class="btn-main btn-spreadsheet" id="spreadsheet-test-btn">
+            <i class="fas fa-table"></i> 表格測驗
+        </button>
+    </div>
+    <div id="question-box">
+        <p id="question-text"></p>
+        <form id="answer-form">
+            <input type="text" id="answer-input" placeholder="請輸入驗證答案">
+            <input type="hidden" name="recaptcha_response" id="recaptchaResponse">
+            <button type="submit" id="submit-answer">提交驗證</button>
+        </form>
+        <p id="error-msg"></p>
+    </div>
+
+
+</div>
+
+<script>
+    document.getElementById("spreadsheet-test-btn").addEventListener("click", () => {
+        window.location.href = "/spreadsheet-test";
+    });
+
+    document.getElementById("sql-test-btn").addEventListener("click", () => {
+        window.location.href = "/sql-test";
+    });
+
+    document.getElementById("chat-btn").addEventListener("click", async () => {
+        const questionBox = document.getElementById("question-box");
+        questionBox.style.display = "block";
+
+        // Scroll to question box smoothly
+        questionBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        const response = await fetch("/get_question");
+        if (response.status === 403) {
+            document.getElementById("error-msg").textContent = "您的 IP 訪問已被暫時限制，請稍後再試。";
+            document.getElementById("chat-btn").disabled = true;
+        } else {
+            const questionText = await response.text();
+            document.getElementById("question-text").textContent = questionText;
+            document.getElementById("error-msg").textContent = "";
+        }
+    });
+
+    document.getElementById("answer-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const answer = document.getElementById("answer-input").value.trim();
+        if (!answer) return;
+
+        const submitButton = document.getElementById("submit-answer");
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 驗證中...';
+
+        try {
+            const response = await fetch("/validate_answer", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ answer: answer })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                submitButton.innerHTML = '<i class="fas fa-check"></i> 驗證成功';
+                setTimeout(() => {
+                    window.location.href = "/chatroom";
+                }, 1000);
+            } else {
+                submitButton.disabled = false;
+                submitButton.innerHTML = '提交驗證';
+
+                if (result.blocked) {
+                    document.getElementById("error-msg").textContent = "嘗試次數已達上限，您的 IP 將被暫時限制訪問。";
+                    document.getElementById("chat-btn").disabled = true;
+                    document.getElementById("submit-answer").disabled = true;
+                } else {
+                    document.getElementById("error-msg").textContent = `驗證未通過，您已嘗試 ${result.attempts} 次。`;
+                }
+            }
+        } catch (error) {
+            submitButton.disabled = false;
+            submitButton.innerHTML = '提交驗證';
+            document.getElementById("error-msg").textContent = "驗證過程中發生錯誤，請稍後再試。";
+        }
+    });
+
+
+</script>
+</body>
+</html>

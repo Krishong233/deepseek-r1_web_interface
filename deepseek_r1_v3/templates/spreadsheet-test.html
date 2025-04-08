@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <title>Spreadsheet Formula Practice</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        table { border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #f2f2f2; }
+        .correct { color: green; }
+        .incorrect { color: red; }
+        .btn-spreadsheet {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            border-radius: 10px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-top: 20px;
+        }
+        .btn-spreadsheet:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px #4CAF50;
+        }
+    </style>
+</head>
+<body>
+<h1>Spreadsheet Formula Practice</h1>
+<div class="spreadsheet">
+    {{ table_html|safe }}
+</div>
+<div class="question">
+    <h3>Question:</h3>
+    <p>{{ question }}</p>
+</div>
+<br>
+<form method="POST">
+    <br>
+    <label>Your formula answer:</label><br>
+    <input type="text" name="answer" size="50" required><br>
+    <br>
+    <button type="submit">Submit Answer</button>
+</form>
+{% if result %}
+<div class="result {% if 'Correct' in result %}correct{% else %}incorrect{% endif %}">
+    {{ result }}
+</div>
+{% endif %}
+<br>
+<div class="progress-link">
+    <a href="{{ url_for('spreadsheet_progress') }}">View Your Progress</a>
+</div>
+<br>
+<br>
+<a href="/" class="btn-spreadsheet">返回主頁</a>
+</body>
+</html>

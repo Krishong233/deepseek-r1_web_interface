@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1,viewport-fit=cover">
+  <title>(∪.∪ )...zzz</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script><!-- 自訂樣式 -->
+  <style>
+    /* 🌟 全局樣式 */
+    body {
+      background: linear-gradient(135deg, rgb(77, 109, 132) 0%, rgb(78, 110, 133) 100%);
+      font-family: 'Noto Sans TC', 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    /* 🌟 聊天界面容器 */
+    .chat-container {
+      width: 100%;
+      max-width: 900px;
+      height: 90vh;
+      background: rgb(188, 205, 222);
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgb(192, 226, 250);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: fadeIn 0.5s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* 🌟 頂部標題 */
+    h1 {
+      text-align: center;
+      color: #a7d3b7;
+      padding: 15px;
+      margin: 0;
+      font-size: 23px;
+      background: linear-gradient(90deg, #d7dee5, #c0d6e5);
+      text-shadow: 0 0 10px #889da6;
+    }
+
+    /* 🌟 聊天訊息框 */
+    #chat-box {
+      flex: 1;
+      overflow-y: auto;
+      padding: 30px;
+      background: rgb(187, 208, 224);
+      scrollbar-width: thin;
+      scrollbar-color: #93d3ff #2a5677;
+    }
+
+    /* 🌟 訊息樣式 */
+    .message {
+      padding: 12px;
+      border-radius: 11px;
+      margin-bottom: 12px;
+      max-width: 80%;
+      word-wrap: break-word;
+      box-shadow: 0 2px 6px rgb(149, 173, 187);
+      animation: slideIn 0.3s ease-out;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .message.user {
+      align-self: flex-end;
+      background: #91A3B0; /* 靜謐煙霧藍 */
+      color: white;
+    }
+
+    .message.assistant {
+      align-self: flex-start;
+      background-color: #D1D8DD; /* 淡雅灰藍 */
+      color: #333;
+    }
+
+    /* 🌟 輸入區 */
+    #chat-form {
+      display: flex;
+      padding: 12px;
+      background: #e1f0fb;
+      border-top: 1px solid #e4f0fc;
+      align-items: center;
+    }
+
+    #user-input {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #b1deff;
+      border-radius: 8px;
+      resize: none;
+      min-height: 44px;
+      font-size: 16px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      background: #ffffff;
+      backdrop-filter: blur(10px);
+      color: rgb(30, 38, 44);
+    }
+
+    #user-input:focus {
+      border-color: #d8e7fa;
+      box-shadow: 0px 0px 8px rgba(124, 135, 147, 0.3);
+      outline: none;
+    }
+
+    /* 🌟 美化按鈕 */
+    button {
+      background: linear-gradient(135deg, #74a9cb, #5489ae);
+      color: #ffffff;
+      border: none;
+      margin-left: 3px;
+      cursor: pointer;
+      border-radius: 100px;
+      transition: transform 0.3s, box-shadow 0.3s;
+      font-size: 13px;
+      padding: 8px 200px;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 10px #c4e8ff;
+      background: linear-gradient(135deg, #7C8793, #5E6873);
+    }
+    #loading {
+      text-align: center;
+      color: #a9bdc4;
+      padding: 10px;
+      background: rgb(42, 87, 120);
+      display: none;
+      font-size: 15px;
+    }
+    /* 🌟 手機適配 */
+    @media screen and (max-width: 768px) {
+      .btn{
+        font-size: 6px; /* 縮小按鈕文本 */
+        padding: 18px 13px;
+        margin-left: 10px;
+        background: #7c8f97;
+        color: #c0d4e3;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .button_reset{
+        font-size: 6px;
+        background: grey;
+        padding: 5px 10px;
+      }
+      .button_sub{
+        font-size: 12px;
+        padding: 5px 100px;
+      }
+      .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 85vh;
+        width: 100%;
+        background: rgb(204, 228, 246);
+        border-radius: 15px;
+        box-shadow: 0 0 20px rgb(200, 214, 225);
+        animation: fadeIn 1s ease-in-out;
+        margin: 0;
+        padding: 0;
+      }
+      #loading {
+        text-align: center;
+        color: #a9bdc4;
+        padding: 10px;
+        background: rgb(42, 87, 120);
+        display: none;
+        font-size: 13px;
+      }
+      #chat-box {
+        font-size: 14px; /* 縮小聊天記錄文本 */
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        word-break: break-word;
+        overflow-wrap: break-word;
+      }
+
+      #chat-form {
+        display: flex;
+        padding: 10px;
+        background: rgb(225, 240, 251);
+      }
+
+      #user-input {
+        flex: 1;
+        padding: 10px;
+        font-size: 14px;
+        border: 1px solid #00a5ff;
+        border-radius: 5px;
+        background: rgb(225, 240, 251);
+        backdrop-filter: blur(10px);
+        color: #20292f;
+      }
+
+      button {
+        font-size: 5px; /* 縮小按鈕文本 */
+        background: #4e8baf;
+        color: #ffffff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+
+      }
+      h1 {
+        text-align: center;
+        color: #a7d3b7;
+        padding: 15px;
+        margin: 0;
+        font-size: 19px;
+        background: linear-gradient(90deg, #e1f0fb, #c0d6e5);
+        text-shadow: 0 0 10px #b5dcfa;
+      }
+      body {
+        background: linear-gradient(135deg, rgb(77, 109, 132) 0%, rgb(78, 110, 133) 100%);
+        font-family: 'Noto Sans TC', 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        height: 85vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+      .button-group {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 3px;
+
+      }
+      .chat-container.keyboard-open {
+        padding-bottom: 250px; /* 根據設備調整，確保鍵盤不遮蓋輸入區 */
+      }
+    }
+
+    .math {
+      font-family: KaTeX_Math;
+      line-height: 1.5;
+    }
+    .math.display {
+      display: block;
+      margin: 1em 0;
+      text-align: center;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1em 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .task-list-item {
+      list-style-type: none;
+      margin: 0.5em 0;
+    }
+
+    pre {
+      background: #f5f5f5;
+      padding: 1em;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+
+    blockquote {
+      border-left: 4px solid #ddd;
+      margin: 1em 0;
+      padding-left: 1em;
+      color: #666;
+    }
+
+    .footnote {
+      font-size: 0.9em;
+      color: #666;
+      margin: 0.5em 0;
+    }
+
+    .katex-display {
+      margin: 1em 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    .katex {
+      font-size: 1.1em;
+    }
+
+    .equation, .align, .matrix, .cases {
+      margin: 1em 0;
+      overflow-x: auto;
+    }
+
+    .katex-display > .katex {
+      white-space: normal;
+    }
+
+    .align {
+      text-align: center;
+    }
+
+    .matrix {
+      text-align: center;
+    }
+
+    .cases {
+      text-align: left;
+    }
+    .katex-error {
+      color: #cc0000;
+      background-color: #ffeded;
+      padding: 2px;
+      border-radius: 3px;
+    }
+
+    .katex-display {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 5px 0;
+    }
+    .btn{
+      font-size: 14px; /* 縮小按鈕文本 */
+      padding: 20px 3px;
+      margin-left: 10px;
+      background: #456c80;
+      color: #ffffff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .chat-input-area {
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      background: rgb(226, 242, 253);
+    }
+
+    .button-group {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 10px;
+
+    }
+    .button_reset{
+      background: grey;
+      padding: 4px 50px;
+      font-size: 10px;
+    }
+
+    @supports (padding: max(0px)) {
+      .chat-container {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+
+    }
+  </style>
+</head>
+<body data-messages="{{ data_messages|safe }}">
+<div class="chat-container">
+  <h1 style="text-align: center; color: #333;">Hi~ o(*￣▽￣*)ブ</h1>
+  <div id="loading" class="loading">思考中OwO...</div>
+
+  <div class="chat-container">
+    <div id="chat-box"></div>
+    <div class="chat-input-area">
+      <form id="chat-form" onsubmit="return handleSubmit(event)">
+        <textarea id="user-input" placeholder="輸入您的問題...（Enter 送出 Shift+Enter 換行）" rows="2"></textarea>
+      </form>
+      <div class="button-group">
+        <button type="button" id="reset-button" class="button_reset" onclick="document.getElementById('reset-form').submit() ">重置對話</button>
+        <button type="submit"  id="send-button" class="button_sub"form="chat-form"><(￣︶￣)↗[GO!]</button>
+      </div>
+    </div>
+    <form id="reset-form" action="/reset" method="post" style="display: none;"></form>
+  </div>
+
+</div>
+
+<!-- 引入 Bootstrap JS 和 Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+<!-- JavaScript -->
+<script>
+  // 在 <script> 標籤內修改
+  document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("user-input");
+    const chatForm = document.getElementById("chat-form");
+    const chatBox = document.getElementById("chat-box");
+    const loading = document.getElementById("loading");
+    const sendButton = document.getElementById("send-button");
+    let messages = [
+      { role: "system", content: "You are the most powerful AI in the world, a highly intelligent assistant. Respond using clear, Traditional Chinese. You have access to the full conversation history and should use it to provide context-aware responses." }
+    ];
+    let isWaitingForResponse = false;
+
+    loading.style.display = "none";
+
+    // 配置 KaTeX
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "\\[", right: "\\]", display: true},
+        {left: "\\(", right: "\\)", display: false},
+        {left: "$", right: "$", display: false},
+        {left: "$$", right: "$$", display: true}
+      ],
+      throwOnError: false,
+      errorColor: '#cc0000'
+    });
+
+    input.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        chatForm.dispatchEvent(new Event("submit"));
+      }
+    });
+
+    input.addEventListener("input", function () {
+      this.style.height = "auto";
+      this.style.height = this.scrollHeight + "px";
+    });
+
+    chatForm.onsubmit = async function (e) {
+      e.preventDefault();
+      const message = input.value.trim();
+      if (!message || isWaitingForResponse) return;
+
+      input.disabled = true;
+      sendButton.disabled = true;
+      isWaitingForResponse = true;
+
+      // 添加用戶訊息到歷史和界面
+      messages.push({ role: "user", content: message });
+      appendMessage("你", message, "user");
+
+      input.value = "";
+      input.style.height = "40px";
+      chatBox.scrollTop = chatBox.scrollHeight;
+      loading.style.display = "block";
+
+      const assistantDiv = document.createElement("div");
+      assistantDiv.className = "message assistant";
+      assistantDiv.innerHTML = "<strong>DeepSeek-R1：</strong><br>";
+      chatBox.appendChild(assistantDiv);
+
+      try {
+        const response = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: messages })
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let content = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          content += decoder.decode(value);
+          assistantDiv.innerHTML = `<strong>DeepSeek-R1：</strong><br>${formatMarkdown(content)}`;
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // 添加助手回應到歷史
+        messages.push({ role: "assistant", content: content });
+      } catch (error) {
+        assistantDiv.innerHTML = `<strong>錯誤：</strong>${error.message}`;
+      } finally {
+        input.disabled = false;
+        sendButton.disabled = false;
+        isWaitingForResponse = false;
+        loading.style.display = "none";
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    };
+
+    document.getElementById("reset-form").onsubmit = function (e) {
+      e.preventDefault();
+      messages = [
+        { role: "system", content: "You are DeepSeek-R1, a highly intelligent assistant. Respond using clear, Traditional Chinese. You have access to the full conversation history and should use it to provide context-aware responses." }
+      ];
+      chatBox.innerHTML = "";
+      loading.style.display = "none";
+      const resetMessage = document.createElement("div");
+      resetMessage.className = "message assistant";
+      resetMessage.textContent = "對話已重置。";
+      chatBox.appendChild(resetMessage);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    };
+
+    function loadInitialMessages() {
+      messages.forEach(msg => {
+        if (msg.role === "user") appendMessage("你", msg.content, "user");
+        else if (msg.role === "assistant") appendMessage("DeepSeek-R1", msg.content, "assistant");
+      });
+    }
+
+    function countTokens(message) {
+      // 簡單估算：每個字符約 0.5 token
+      return Math.ceil(JSON.stringify(message).length / 2);
+    }
+
+    function trimMessagesByTokens() {
+      let totalTokens = messages.reduce((sum, msg) => sum + countTokens(msg), 0);
+      while (totalTokens > MAX_TOKENS && messages.length > 1) {
+        messages.splice(1, 1); // 移除最早的非系統訊息
+        totalTokens = messages.reduce((sum, msg) => sum + countTokens(msg), 0);
+        chatBox.innerHTML = ""; // 重新渲染
+        const trimMessage = document.createElement("div");
+        trimMessage.className = "message assistant";
+        trimMessage.textContent = "對話歷史已超出 3000 token 限制，最早訊息已被修剪。";
+        chatBox.appendChild(trimMessage);
+      }
+      localStorage.setItem("chatHistory", JSON.stringify(messages));
+    }
+    /**
+     * 🔹 格式化 Markdown 內容（完整支援標題、粗體、斜體、列表、程式碼）
+     */
+    function appendMessage(sender, text, role) {
+      const messageDiv = document.createElement("div");
+      messageDiv.className = `message ${role}`;
+      messageDiv.innerHTML = `<strong>${sender}：</strong><br>${formatMarkdown(text)}`;
+      chatBox.appendChild(messageDiv);
+
+      // 重新渲染數學公式
+      renderMathInElement(messageDiv, {
+        delimiters: [
+          {left: "\\(", right: "\\)", display: false},
+          {left: "\\[", right: "\\]", display: true},
+          {left: "$", right: "$", display: false},
+          {left: "$$", right: "$$", display: true}
+        ],
+        throwOnError: false,
+        errorColor: '#cc0000',
+        macros: {
+          "\\pm": "\\pm",
+          "\\sqrt": "\\sqrt",
+          "\\boxed": "\\boxed",
+          "\\Delta": "\\Delta"
+        },
+        strict: false
+      });
+      chatBox.scrollTop = chatBox.scrollHeight; // 滾動到底部
+    }
+    function formatMarkdown(text) {
+      // 安全處理，防止惡意 HTML 注入
+      text = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+      // 1. LaTeX 數學公式處理
+      // 行内公式: \( formula \) 或 $ formula $
+      text = text.replace(/\\\[([\s\S]*?)\\\]/g, function(match, formula) {
+        try {
+          return katex.renderToString(formula.trim(), {
+            throwOnError: false,
+            displayMode: true,
+            strict: false
+          });
+        } catch (e) {
+          console.error('KaTeX error:', e);
+          return match;
+        }
+      });
+
+      // 處理行内數學公式
+      text = text.replace(/\\\(([\s\S]*?)\\\)/g, function(match, formula) {
+        try {
+          return katex.renderToString(formula.trim(), {
+            throwOnError: false,
+            displayMode: false,
+            strict: false
+          });
+        } catch (e) {
+          console.error('KaTeX error:', e);
+          return match;
+        }
+      });
+
+
+      // LaTeX特殊命令
+      const latexCommands = {
+        '\\begin{equation}': '<div class="equation">',
+        '\\end{equation}': '</div>',
+        '\\begin{align}': '<div class="align">',
+        '\\end{align}': '</div>',
+        '\\begin{matrix}': '<div class="matrix">',
+        '\\end{matrix}': '</div>',
+        '\\begin{cases}': '<div class="cases">',
+        '\\end{cases}': '</div>'
+      };
+
+      // 處理LaTeX環境
+      Object.keys(latexCommands).forEach(cmd => {
+        text = text.replace(new RegExp(cmd.replace(/\\/g, '\\\\'), 'g'), latexCommands[cmd]);
+      });
+
+      // 2. 數字符號替換
+      const mathSymbols = {
+        '\\alpha': 'α',
+        '\\beta': 'β',
+        '\\gamma': 'γ',
+        '\\delta': 'δ',
+        '\\epsilon': 'ε',
+        '\\zeta': 'ζ',
+        '\\eta': 'η',
+        '\\theta': 'θ',
+        '\\iota': 'ι',
+        '\\kappa': 'κ',
+        '\\lambda': 'λ',
+        '\\mu': 'μ',
+        '\\nu': 'ν',
+        '\\xi': 'ξ',
+        '\\pi': 'π',
+        '\\rho': 'ρ',
+        '\\sigma': 'σ',
+        '\\tau': 'τ',
+        '\\upsilon': 'υ',
+        '\\phi': 'φ',
+        '\\chi': 'χ',
+        '\\psi': 'ψ',
+        '\\omega': 'ω',
+        '\\infty': '∞',
+        '\\pm': '±',
+        '\\times': '×',
+        '\\div': '÷',
+        '\\sum': '∑',
+        '\\prod': '∏',
+        '\\int': '∫',
+        '\\partial': '∂',
+        '\\nabla': '∇',
+        '\\therefore': '∴',
+        '\\because': '∵'
+      };
+
+      // 替換數字符號
+      Object.keys(mathSymbols).forEach(symbol => {
+        text = text.replace(new RegExp(symbol.replace(/\\/g, '\\\\'), 'g'), mathSymbols[symbol]);
+      });
+
+      // 2. 表格處理
+      text = text.replace(/\|.*\|/g, function(match) {
+        const rows = match.split('\n').filter(row => row.trim());
+        if (rows.length < 2) return match;
+
+        const tableHTML = rows.map((row, index) => {
+          const cells = row.split('|').filter(cell => cell.trim());
+          const tag = index === 0 ? 'th' : 'td';
+          return `<tr>${cells.map(cell => `<${tag}>${cell.trim()}</${tag}>`).join('')}</tr>`;
+        }).join('');
+
+        return `<table class="table table-bordered">${tableHTML}</table>`;
+      });
+
+      // 3. 任務列表
+      text = text.replace(/- \[(x| )\] (.*)/g, function(match, checked, content) {
+        const isChecked = checked === 'x' ? 'checked' : '';
+        return `<div class="task-list-item"><input type="checkbox" ${isChecked} disabled> ${content}</div>`;
+      });
+
+      // 4. 標注
+      text = text.replace(/\[\^(\d+)\]:\s*(.*)/g, '<div class="footnote"><sup>$1</sup> $2</div>');
+      text = text.replace(/\[\^(\d+)\]/g, '<sup>$1</sup>');
+
+      // 5. 高亮標記
+      text = text.replace(/==(.*?)==/g, '<mark>$1</mark>');
+
+      // 6. 程序代碼块
+      text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, function(match, lang, code) {
+        const language = lang || '';
+        return `<pre><code class="language-${language}">${code}</code></pre>`;
+      });
+
+      // 7. 單行代碼
+      text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+      // 8. 標題處理
+      text = text.replace(/^#{1,6} (.*$)/gm, function(match) {
+        const level = match.match(/^#+/)[0].length;
+        const content = match.replace(/^#+\s*/, '');
+        return `<h${level}>${content}</h${level}>`;
+      });
+
+      // 9. 引用block
+      text = text.replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>');
+
+      // 10. 水平分割綫
+      text = text.replace(/^(-{3,}|_{3,}|\*{3,})$/gm, '<hr>');
+
+      // 11. 强調語法
+      text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');  // 粗體
+      text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');  // 斜體
+      text = text.replace(/~~(.*?)~~/g, '<del>$1</del>');  // 删除綫
+      text = text.replace(/__(.*?)__/g, '<u>$1</u>');  // 下划綫
+
+      // 12. 鏈接及圖片
+      text = text.replace(/!\[(.*?)\]\((.*?)\)/g, '<img alt="$1" src="$2">');  // 圖片
+      text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');  // 鏈接
+
+      // 13. 有序列表
+      text = text.replace(/(\d+\. .*(?:\n\d+\. .*)*)/g, function(match) {
+        const items = match.split('\n').map(item =>
+                `<li>${item.replace(/^\d+\. /, '')}</li>`
+        ).join('');
+        return `<ol>${items}</ol>`;
+      });
+
+      // 14. 無序列表
+      text = text.replace(/(?:^|\n)([-*+] .*(?:\n[-*+] .*)*)/g, function(match) {
+        const items = match.split('\n').map(item =>
+                `<li>${item.replace(/^[-*+] /, '')}</li>`
+        ).join('');
+        return `<ul>${items}</ul>`;
+      });
+
+      // 15. 上標及下標
+      text = text.replace(/\^(.*?)\^/g, '<sup>$1</sup>');  // 上標
+      text = text.replace(/~(.*?)~/g, '<sub>$1</sub>');  // 下標
+
+      // 16. 换行處理
+      text = text.replace(/(?![^<]*>|\$.*\$)\n/g, '<br>');
+
+      return text;
+    }
+  });
+
+</script>
+</body>
+</html>
+
+

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Your Learning Progress</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .correct { color: green; }
+        .incorrect { color: red; }
+    </style>
+</head>
+<body>
+<h1>Your Learning Progress</h1>
+<table>
+    <tr>
+        <th>Question</th>
+        <th>Your Answer</th>
+        <th>Correct Answer</th>
+        <th>Result</th>
+        <th>Time</th>
+    </tr>
+    {% for rec in records %}
+    <tr>
+        <td>{{ rec[0] }}</td>
+        <td><code>{{ rec[1] }}</code></td>
+        <td><code>{{ rec[2] }}</code></td>
+        <td class="{% if rec[3] == 1 %}correct{% else %}incorrect{% endif %}">
+            {% if rec[3] == 1 %}✓ Correct{% else %}✗ Incorrect{% endif %}
+        </td>
+        <td>{{ rec[4][:19] }}</td>
+    </tr>
+    {% endfor %}
+</table>
+<p><a href="{{ url_for('spreadsheet_test') }}">Return to Practice</a></p>
+</body>
+</html>
