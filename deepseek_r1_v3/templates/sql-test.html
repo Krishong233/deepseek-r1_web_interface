@@ -4,137 +4,425 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SQL Quiz Generator</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script><!-- 自訂樣式 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #2980b9;
+            --light-accent: #3498db;
+            --text-color: #333333;
+            --light-text: #f8f9fa;
+            --border-color: #e0e0e0;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+        }
+
         body {
-            background: linear-gradient(135deg, rgba(89, 116, 136, 0.86) 0%, rgba(95, 124, 145, 0.9) 100%);
-            color: #edfaff;
-            font-family: 'Orbitron', sans-serif;
+            font-family: 'Roboto', 'Noto Sans TC', sans-serif;
+            background-color: #f5f7fa;
+            color: var(--text-color);
+            line-height: 1.6;
             margin: 0;
             padding: 0;
-            height: 100vh;
+        }
+
+        .header {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+            display: flex;
             align-items: center;
         }
-        .container {
-            text-align: left;
-            padding: 40px;
-            background: rgb(68, 101, 124);
-            border-radius: 15px;
-            box-shadow: 0 0 20px rgb(78, 87, 93);
-            width: 90%;
-            max-width: 800px;
-        }
-        h1, h2, h3 {
-            color: #f0f8fd;
-            text-shadow: 0 0 10px #83a4b2;
 
+        .logo i {
+            margin-right: 10px;
+            color: var(--accent-color);
         }
-        pre {
-            background-color: rgba(203, 228, 243, 0.89);
-            color: rgb(4, 6, 7);
-            padding: 10px;
-            border-radius: 5px;
+
+        .main-container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .quiz-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card-title {
+            color: var(--primary-color);
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            color: var(--secondary-color);
+            font-size: 18px;
+            font-weight: 600;
+            margin: 25px 0 15px;
+        }
+
+        .schema-container {
+            background-color: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
             overflow-x: auto;
-            text-shadow: 0 0 6px #4c6b79;
         }
-        .btn-submit {
-            background: rgb(75, 163, 225);
-            color: #ffffff;
-            border: none;
+
+        .schema-container pre {
+            margin: 0;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 14px;
+            color: var(--secondary-color);
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        .question-container {
+            background-color: #f8fafc;
+            border-left: 4px solid var(--accent-color);
+            padding: 20px;
+            border-radius: 0 6px 6px 0;
+            margin: 25px 0;
+        }
+
+        .answer-area {
+            margin: 30px 0;
+        }
+
+        #answer-input {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            font-family: 'Roboto Mono', monospace;
+            font-size: 15px;
+            resize: vertical;
+            transition: border 0.3s, box-shadow 0.3s;
+            background-color: white;
+        }
+
+        #answer-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .btn {
             padding: 10px 20px;
-            border-radius: 5px;
-            margin-top: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
-        .btn-submit:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 15px #00a5ff;
+
+        .btn i {
+            margin-right: 8px;
         }
-        .error-msg { color: #de683a; margin-top: 10px; text-shadow: 0 0 10px #9f3c18;}
-        .success-msg { color: #93d3ff; margin-top: 10px;text-shadow: 0 0 10px #83a4b2; }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--light-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(41, 128, 185, 0.2);
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: var(--secondary-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-next {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-next:hover {
+            background-color: #2ecc71;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(46, 204, 113, 0.2);
+        }
+
+        .message {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .message i {
+            margin-right: 10px;
+        }
+
+        .error-msg {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: var(--error-color);
+            border-left: 4px solid var(--error-color);
+        }
+
+        .success-msg {
+            background-color: rgba(39, 174, 96, 0.1);
+            color: var(--success-color);
+            border-left: 4px solid var(--success-color);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+            font-size: 14px;
+            border-top: 1px solid var(--border-color);
+            margin-top: 50px;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 0 15px;
+            }
+
+            .quiz-card {
+                padding: 20px;
+            }
+
+            .button-group {
+                flex-direction: row;
+                gap: 15px;
+            }
+
+            .fas fa-home{
+                width: 20%;
+            }
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>SQL Quiz Generator</h1>
-    <h3>Provided Table Schemas</h3>
-    <pre>
+<header class="header">
+    <div class="header-content">
+        <a href="/dashboard" class="logo">
+            <i class="fas fa-database"></i>
+            <span>SQL QUIZ</span>
+        </a>
+        <div class="user-menu">
+            <span class="username"></span>
+        </div>
+    </div>
+</header>
+
+<div class="main-container">
+    <div class="quiz-card">
+        <h1 class="card-title">SQL 測驗題目</h1>
+
+        <h3 class="section-title">資料表結構</h3>
+        <div class="schema-container">
+                <pre>
 -- employees table
-employee_id   INTEGER    -- Primary Key
+employee_id   INTEGER -- Primary
 name          CHAR(100)
 salary        INTEGER
-department_id INTEGER    -- Foreign Key
+department_id INTEGER -- Foreign
 
 -- customers table
-customer_id        INTEGER  -- Primary Key
-name               CHAR(100)
+customer_id   INTEGER -- Primary
+name          CHAR(100)
 registration_date  DATE
 
 -- products table
-product_id    INTEGER   -- Primary Key
+product_id    INTEGER -- Primary
 product_name  CHAR(100)
 price         INTEGER
 
 -- orders table
-order_id      INTEGER   -- Primary Key
-customer_id   INTEGER   -- Foreign Key
+order_id      INTEGER -- Primary
+customer_id   INTEGER -- Foreign
 total_amount  INTEGER
 
 -- departments table
-department_id    INTEGER   -- Primary Key
-department_name  CHAR(100)
-    </pre>
-    <hr>
-    <h2>SQL Quiz Question</h2>
-    <p id="question-text"></p>
-    <form id="answer-form">
-        <textarea id="answer-input" rows="5" style="width:100%; background:rgba(228,243,253,0.87); font-family: 'Noto Sans TC', 'Roboto', sans-serif;border:1px solid #00a5ff; color:#1f303d; padding:10px; border-radius:5px;" placeholder="Enter your SQL statement here"></textarea>
-        <button type="submit" class="btn-submit">Submit Answer</button>
-    </form>
-    <p class="error-msg" id="error-msg"></p>
-    <p class="success-msg" id="success-msg"></p>
+department_id  INTEGER -- Primary
+department_name CHAR(100)
+                </pre>
+        </div>
+
+        <h3 class="section-title">問題描述</h3>
+        <div class="question-container">
+            <div id="question-text"></div>
+        </div>
+
+        <div class="answer-area">
+            <form id="answer-form">
+                <label for="answer-input" class="section-title">請輸入您的SQL查詢：</label>
+                <textarea id="answer-input" placeholder="SELECT * FROM employees WHERE..."></textarea>
+
+                <div class="button-group">
+                    <a href="/" class="btn btn-secondary"  style="width: 100px">
+                        <i class="fas fa-home"></i> 主頁
+                    </a>
+                    <div>
+                        <button type="submit" class="btn btn-primary" style="width: 100px">
+                            <i class="fas fa-paper-plane"></i>發送
+                        </button>
+                        <button type="button" id="next-btn" class="btn btn-next" style="margin-left: 10px; height: 42px;width: 40px">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="error-msg message" id="error-msg" style="display: none;">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="error-text"></span>
+        </div>
+
+        <div class="success-msg message" id="success-msg" style="display: none;">
+            <i class="fas fa-check-circle"></i>
+            <span id="success-text"></span>
+        </div>
+    </div>
 </div>
 
+<footer class="footer">
+    <p>© 2025 K_HONNG_</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // When the page loads, fetch a new SQL quiz question.
+    // 當頁面載入時，獲取新的SQL測驗題目
     window.onload = async () => {
-        const response = await fetch('/get_sql_question');
-        if(response.ok) {
-            const data = await response.json();
-            document.getElementById('question-text').textContent = data.question;
-        } else {
-            document.getElementById('error-msg').textContent = 'Failed to load quiz question.';
+        try {
+            document.getElementById('error-msg').style.display = 'none';
+            document.getElementById('success-msg').style.display = 'none';
+
+            const response = await fetch('/get_sql_question');
+            if(response.ok) {
+                const data = await response.json();
+                document.getElementById('question-text').textContent = data.question;
+            } else {
+                throw new Error('無法載入測驗題目');
+            }
+        } catch (error) {
+            document.getElementById('error-text').textContent = error.message;
+            document.getElementById('error-msg').style.display = 'flex';
         }
     };
 
+    // 提交答案
     document.getElementById("answer-form").addEventListener("submit", async (e) => {
         e.preventDefault();
-        document.getElementById('error-msg').textContent = '';
-        document.getElementById('success-msg').textContent = '';
+        document.getElementById('error-msg').style.display = 'none';
+        document.getElementById('success-msg').style.display = 'none';
+
         const answer = document.getElementById("answer-input").value.trim();
         if (!answer) {
-            document.getElementById('error-msg').textContent = 'Answer cannot be empty.';
+            document.getElementById('error-text').textContent = '請輸入您的SQL查詢';
+            document.getElementById('error-msg').style.display = 'flex';
             return;
         }
-        const response = await fetch('/validate_sql_answer', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ answer: answer })
-        });
-        const result = await response.json();
-        if (result.success) {
-            document.getElementById('success-msg').textContent = 'Your answer is correct! Good job!';
-        } else {
-            document.getElementById('error-msg').textContent = `Answer: ${result.message}`;
+
+        try {
+            const response = await fetch('/validate_sql_answer', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ answer: answer })
+            });
+
+            if (!response.ok) {
+                throw new Error('網路回應異常');
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                document.getElementById('success-text').textContent = result.message || '答案正確！做得很好！';
+                document.getElementById('success-msg').style.display = 'flex';
+                document.getElementById('answer-input').style.borderColor = 'var(--success-color)';
+            } else {
+                document.getElementById('error-text').textContent = result.message || '您的答案需要修正';
+                document.getElementById('error-msg').style.display = 'flex';
+                document.getElementById('answer-input').style.borderColor = 'var(--error-color)';
+            }
+
+            setTimeout(() => {
+                document.getElementById('answer-input').style.borderColor = 'var(--border-color)';
+            }, 2000);
+        } catch (error) {
+            document.getElementById('error-text').textContent = '驗證答案時發生錯誤';
+            document.getElementById('error-msg').style.display = 'flex';
+            console.error('Error:', error);
+        }
+    });
+
+    // 下一題按鈕
+    document.getElementById("next-btn").addEventListener("click", async () => {
+        document.getElementById('error-msg').style.display = 'none';
+        document.getElementById('success-msg').style.display = 'none';
+        document.getElementById('answer-input').value = '';
+        document.getElementById('answer-input').style.borderColor = 'var(--border-color)';
+
+        try {
+            const response = await fetch('/get_sql_question');
+            if(response.ok) {
+                const data = await response.json();
+                document.getElementById('question-text').textContent = data.question;
+            } else {
+                throw new Error('無法載入下一題');
+            }
+        } catch (error) {
+            document.getElementById('error-text').textContent = error.message;
+            document.getElementById('error-msg').style.display = 'flex';
         }
     });
 </script>

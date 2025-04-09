@@ -191,15 +191,30 @@ def sql_test():
 @app.route("/get_sql_question", methods=["GET"])
 def get_sql_question():
     random_seed = random.randint(1, 1000)
+    random_kind = random.randint(0,3)
+    difficulty  = random.uniform(0,0.5)
+    kinds="ALTER"
+    if random_kind==0:
+        kinds="SELECT"
+    elif random_kind==1:
+        kinds="INSERT"
+    elif random_kind==2:
+        kinds="UPDATE"
+    elif random_kind==3:
+        kinds="ALTER"
     timestamp = int(time.time())
     prompt = f"""
 Generate a SQL quiz question and its correct SQL answer based on the following table schemas.
 The quiz question and answer must be in English.
 Restrictions:
-1. Only use the following SQL keywords, operators, and functions: FALSE, TRUE, AND, NOT, OR, ABS, AVG, INT, MAX, MIN, SUM, COUNT, ASC, AT, CHAR, CHR, CHAR_LENGTH, LEN, LOWER, TRIM, SPACE, SUBSTRING, SUBSTR, MID, UPPER, VALUE, VAL, DATE, DAY, MONTH, YEAR, ADD, ALL, ALTER, ANY, AS, BETWEEN, BY, CREATE, DELETE, DESC, DISTINCT, DROP, EXISTS, FROM, GROUP, HAVING, IN, INDEX, INNER, JOIN, INSERT, INTEGER, INTERSECT, INTO, LEFT, LIKE, MINUS, NULL, RIGHT, FULL, ON, ORDER, SELECT, SET, TABLE, TO, UNION, UNIQUE, UPDATE, VALUES, VIEW, WHERE, +, -, *, /, >, <, =, >=, <=, <>, %, _, '.
-2. The SQL statement (correct answer) may contain at most one sub-query (no more than one in whole answer), 1/3 difficulty level.
-3. Output your result as a JSON object with exactly two keys: "question" and "answer". Do not include any additional text.
-4. To ensure variety, generate a unique question each time, using this random seed: {random_seed} and timestamp: {timestamp}.
+1. Only use the following SQL keywords, operators, and functions:AVG, MAX, MIN, SUM, COUNT ,ABSOLUTE (ABS), INT, INTEGER, DATE, DAY, MONTH, YEAR,ASC, CHAR (CHR), VALUE (VAL), LOWER, UPPER, TRIM, CHAR_LENGTH (LEN), SPACE, AT, SUBSTRING (SUBSTR/MID),
+CREATE, ALTER, INSERT, DELETE, DROP, UPDATE, VALUES, INTO, SET, TABLE, TO, SELECT, DISTINCT, UNIQUE, AS, FROM,
+INNER JOIN, LEFT [OUTER] JOIN, FULL [OUTER] JOIN, RIGHT [OUTER] JOIN, ON ,WHERE, BETWEEN, LIKE, NULL ,GROUP, HAVING,
+ORDER, BY, ASC, DESC ,EXISTS, IN, ALL, ANY, INTERSECT, MINUS, UNION, ADD ,INDEX, VIEW,TRUE, FALSE,+,-,*, /,>, <,=, >=,<=,<>, %,_, ', AND, NOT, OR.
+2. It must be a {kinds} sql command.
+3. The SQL statement (correct answer) may contain at one or no sub-query (no more than one in whole answer, can be no),with difficulty:{difficulty} level.
+4. Output your result as a JSON object with exactly two keys: "question" and "answer". Do not include any additional text.
+5. To ensure variety, generate a unique question each time, use random seed: {random_seed} and timestamp: {timestamp} to generate structure of answer.
 Provided Table Schemas:
 -- employees table
 employee_id   INTEGER    -- Primary Key
@@ -233,7 +248,7 @@ department_name  CHAR(100)
     try:
         response = client.chat.completions.create(
             model="deepseek-chat",
-            presence_penalty=1,
+            presence_penalty=2,
             messages=messages,
             max_tokens=1000,
             temperature=2,
