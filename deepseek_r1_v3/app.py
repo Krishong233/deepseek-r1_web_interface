@@ -208,6 +208,7 @@ def chat():
         logger.info(f"發送的訊息序列：{messages}")
 
         def generate():
+            full_response = ""
             try:
                 response = client.chat.completions.create(
                     model="deepseek-chat",
@@ -739,4 +740,5 @@ def log_event(level="info", source="app", message="", metadata=None, save_db=Tru
 if __name__ == "__main__":
 
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
