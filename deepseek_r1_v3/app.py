@@ -12,7 +12,9 @@ import pandas as pd
 import sqlite3
 import datetime
 import requests
-
+from logging.handlers import RotatingFileHandler
+import json as _json
+from datetime import datetime as _datetime
 # Initialize Redis for rate limiting and IP blocking
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
@@ -34,6 +36,32 @@ client = openai.OpenAI(
     base_url="https://api.deepseek.com/v1"
 )
 
+# 日誌檔案設定（可透過環境變數覆蓋）
+LOG_FILE_PATH = os.environ.get("LOG_FILE_PATH", "system_app.log")
+LOG_MAX_BYTES = int(os.environ.get("LOG_MAX_BYTES", 5 * 1024 * 1024))  # 預設 5MB
+LOG_BACKUP_COUNT = int(os.environ.get("LOG_BACKUP_COUNT", 5))  # 保留 5 個備份
+
+# SQLite 日誌表的最大行數（超過則刪最舊）
+LOG_DB_MAX_ROWS = int(os.environ.get("LOG_DB_MAX_ROWS", 5000))
+
+# Redis 最近日誌快取（可選），會把最新 N 筆存在 redis list
+REDIS_LOG_LIST = os.environ.get("REDIS_LOG_LIST", "recent_logs")
+REDIS_LOG_MAXLEN = int(os.environ.get("REDIS_LOG_MAXLEN", 200))
+
+# 是否允許 log 完整 user payload（預設關閉以免記錄敏感資料）
+ALLOW_FULL_PAYLOAD_LOG = os.environ.get("ALLOW_FULL_PAYLOAD_LOG", "false").lower() in ("1","true","yes")
+
+# ===== logging 設定 =====
+logger = logging.getLogger("system_logger")
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    rotating_handler = RotatingFileHandler(
+        LOG_FILE_PATH, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP_COUNT, encoding="utf-8"
+    )
+    formatter = logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s")
+    rotating_handler.setFormatter(formatter)
+    logger.addHandler(rotating_handler)
+    
 # Database setup for spreadsheet quiz
 DATABASE = 'quiz_progress.db'
 
@@ -50,6 +78,20 @@ def init_db():
             timestamp TEXT
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS system_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            level TEXT,
+            source TEXT,
+            message TEXT,
+            metadata TEXT,
+            timestamp TEXT
+        )
+    ''')
+    # index: 便於按時間或 source 查詢
+    c.execute('CREATE INDEX IF NOT EXISTS idx_system_logs_timestamp ON system_logs(timestamp)')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_system_logs_source ON system_logs(source)')
+
     conn.commit()
     conn.close()
 
@@ -79,11 +121,13 @@ def index():
 @app.route("/get_question", methods=["GET"])
 def get_question():
     if session.get("blocked"):
+        log_event("warning", "auth", "blocked client attempted get_question", {"ip": get_client_ip()})
         return "您的 IP 已被封鎖", 403
     question = random.choice(questions)
     session["current_question"] = question["q"]
     session["correct_answer"] = question["a"]
     session["attempts"] = 0  # Reset attempts
+    log_event("info", "auth", "issued auth question", {"question": question["q"], "ip": get_client_ip()})
     return question["q"]
 
 def get_client_ip():
@@ -110,12 +154,15 @@ def validate_answer():
         session.permanent = True
         session["authenticated"] = True
         redis_client.delete(attempts_key)
+        log_event("info", "auth", "authentication success", {"ip": ip, "question": session.get("current_question")})
         return jsonify({"success": True})
     else:
         attempts = int(redis_client.get(attempts_key) or 0) + 1
         redis_client.setex(attempts_key, 3600, attempts)  # 1 小時內有效
+        log_event("warning", "auth", "authentication failed", {"ip": ip, "attempts": attempts, "answer_provided": redact_text(answer)})
         if attempts >= 4:
             redis_client.setex(block_key, 86400, 1)  # 封鎖 24 小時
+            log_event("warning", "auth", "ip blocked", {"ip": ip})
             return jsonify({"success": False, "blocked": True})
         return jsonify({"success": False, "attempts": attempts})
 
@@ -168,10 +215,29 @@ def chat():
                     stream=True
                 )
                 for chunk in response:
-                    if chunk.choices[0].delta.content:
-                        yield chunk.choices[0].delta.content
+                    try:
+                        content = None
+                        choice = chunk.choices[0]
+                        delta = getattr(choice, "delta", {}) if hasattr(choice, "delta") else choice.get("delta", {})
+                        content = (delta.get("content") if isinstance(delta, dict) else getattr(delta, "content", None))
+                        if content:
+                            full_response += content
+                            yield content
+                    except Exception as e:
+                        yield f"[stream error chunk parse: {str(e)}]"
             except Exception as e:
-                yield f"錯誤：{str(e)}"
+                err_msg = f"錯誤：{str(e)}"
+                log_event("error", "chat", "streaming error", {"exception": str(e)})
+                yield err_msg
+            finally:
+                # 將完整 response 存 log（safe metadata）
+                try:
+                    log_event("info", "chat", "chat completed", {
+                        "user_summary": redact_text(next((m['content'] for m in messages if m.get("role")=="user"), ""), max_len=400),
+                        "response_summary": redact_text(full_response, max_len=1000)
+                    })
+                except Exception as e:
+                    logger.error(f"log final chat failed: {e}")
 
         return Response(stream_with_context(generate()), mimetype="text/plain")
 
@@ -325,8 +391,10 @@ def validate_sql_answer():
     
     expected = session.get("sql_correct_answer", "").strip().lower()
     if answer.strip().lower() == expected:
+        log_event("info", "sql_test", "sql answer correct", {"user_answer": redact_text(answer, 400)})
         return jsonify({"success": True})
     else:
+        log_event("warning", "sql_test", "sql answer incorrect", {"user_answer": redact_text(answer, 400), "expected": redact_text(expected, 400)})
         return jsonify({"success": False, "message": f"\n{expected}"})
 
 # --------------------- Spreadsheet Quiz Routes ---------------------
@@ -353,8 +421,14 @@ def spreadsheet_test():
                   int(is_correct), datetime.datetime.now().isoformat()))
         conn.commit()
         conn.close()
-
+        
         result = "Correct!" if is_correct else f"Incorrect. The right answer was: {correct_answer}"
+        # 在儲存 quiz_results 前或後呼叫 log_event
+        log_event("info", "spreadsheet_test", "user submitted spreadsheet answer", {
+            "question": session.get('current_question', {}).get('question'),
+            "user_answer": redact_text(user_answer),
+            "is_correct": is_correct
+        })
         q, table_html = generate_question()
         return render_template("spreadsheet-test.html", question=q, table_html=table_html, result=result)
     else:
@@ -507,6 +581,7 @@ STRICT REQUIREMENTS:
         
     except Exception as e:
         logger.error(f"DeepSeek API Error: {str(e)}")
+        log_event("error", "deepseek", "DeepSeek API Error", {"exception": str(e)})
         return generate_local_question()
 
 def generate_local_question():
@@ -544,6 +619,123 @@ def generate_local_question():
     ]
     return random.choice(examples)
 
+
+####logging####
+
+# ===== 日誌儲存與裁剪工具函式 =====
+def _prune_system_logs_db(max_rows=LOG_DB_MAX_ROWS):
+    # 刪除最舊的超過上限紀錄
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM system_logs")
+        count = c.fetchone()[0]
+        if count > max_rows:
+            to_delete = count - max_rows
+            # 刪除最舊的 to_delete 筆
+            c.execute("""
+                DELETE FROM system_logs WHERE id IN (
+                    SELECT id FROM system_logs ORDER BY id ASC LIMIT ?
+                )
+            """, (to_delete,))
+            conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"prune_system_logs_db error: {e}")
+
+def _save_log_to_db(level, source, message, metadata):
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO system_logs (level, source, message, metadata, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (level, source, message, _json.dumps(metadata or {}), _datetime.utcnow().isoformat()))
+        conn.commit()
+        conn.close()
+        # 裁剪（非同步也可以，但簡單方式：同步呼叫）
+        _prune_system_logs_db()
+    except Exception as e:
+        logger.error(f"_save_log_to_db error: {e}")
+
+def _push_log_to_redis(level, source, message, metadata):
+    try:
+        entry = {
+            "ts": _datetime.utcnow().isoformat(),
+            "level": level,
+            "source": source,
+            "message": message,
+            "metadata": metadata or {}
+        }
+        # LPUSH 最新在前，然後 LTRIM 保持長度
+        redis_client.lpush(REDIS_LOG_LIST, _json.dumps(entry, ensure_ascii=False))
+        redis_client.ltrim(REDIS_LOG_LIST, 0, REDIS_LOG_MAXLEN - 1)
+    except Exception as e:
+        logger.error(f"_push_log_to_redis error: {e}")
+
+def redact_text(text, max_len=1000):
+    # 簡單遮罩/截斷：如果 payload 很大或包含看似 API KEY（含 "key=" 或 "api"），就遮罩
+    if not text:
+        return ""
+    s = str(text)
+    lowered = s.lower()
+    if "api_key" in lowered or "api-key" in lowered or "authorization" in lowered or "bearer" in lowered:
+        return "[REDACTED_SENSITIVE]"
+    if len(s) > max_len:
+        return s[:max_len] + "...[truncated]"
+    return s
+
+def log_event(level="info", source="app", message="", metadata=None, save_db=True, save_redis=True):
+    """
+    通用日誌函式：會寫入 logger（檔案）、並選擇性寫到 sqlite / redis
+    level: "info" / "warning" / "error" / "debug"
+    source: 事件來源（如 "auth", "chat", "deepseek", "sql_test"）
+    message: 簡短文字（會被 redact）
+    metadata: dict，會被 json 化並存入 DB/Redis（會視 ALLOW_FULL_PAYLOAD_LOG 標誌來決定是否完整儲存）
+    """
+    try:
+        msg = redact_text(message)
+        if level == "info":
+            logger.info(f"[{source}] {msg}")
+        elif level == "warning":
+            logger.warning(f"[{source}] {msg}")
+        elif level == "error":
+            logger.error(f"[{source}] {msg}")
+        else:
+            logger.debug(f"[{source}] {msg}")
+    except Exception:
+        pass
+
+    # 根據是否允許保存完整 payload 決定 metadata 內容
+    safe_metadata = {}
+    if metadata:
+        if ALLOW_FULL_PAYLOAD_LOG:
+            safe_metadata = metadata
+        else:
+            # 只保留非敏感的 metadata keys（示例策略）
+            for k, v in (metadata.items() if isinstance(metadata, dict) else []):
+                if k and ("key" in k.lower() or "token" in k.lower() or "password" in k.lower()):
+                    safe_metadata[k] = "[REDACTED]"
+                else:
+                    try:
+                        # 轉成字串並做截斷
+                        safe_metadata[k] = redact_text(v, max_len=500)
+                    except Exception:
+                        safe_metadata[k] = "[UNSERIALIZABLE]"
+
+    # 寫入 sqlite 與 redis
+    if save_db:
+        try:
+            _save_log_to_db(level, source, msg, safe_metadata)
+        except Exception as e:
+            logger.error(f"log_event save_db failed: {e}")
+
+    if save_redis:
+        try:
+            _push_log_to_redis(level, source, msg, safe_metadata)
+        except Exception as e:
+            logger.error(f"log_event push_redis failed: {e}")
+            
 if __name__ == "__main__":
 
     app.run(host="0.0.0.0", port=5000, debug=True)
