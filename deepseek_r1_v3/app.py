@@ -86,9 +86,19 @@ def get_question():
     session["attempts"] = 0  # Reset attempts
     return question["q"]
 
+def get_client_ip():
+    # 如果你的部署在反向代理後面，確保 proxy 正確設置 X-Forwarded-For
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        # 可能是 "client, proxy1, proxy2"
+        ip = forwarded.split(",")[0].strip()
+    else:
+        ip = request.remote_addr or "unknown"
+    return ip
+
 @app.route("/validate_answer", methods=["POST"])
 def validate_answer():
-    ip = request.remote_addr
+    ip = get_client_ip()
     attempts_key = f"attempts:{ip}"
     block_key = f"blocked:{ip}"
     if redis_client.get(block_key):
@@ -537,3 +547,4 @@ def generate_local_question():
 if __name__ == "__main__":
 
     app.run(host="0.0.0.0", port=5000, debug=True)
+
